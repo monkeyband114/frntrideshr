@@ -240,7 +240,7 @@
                 currentRestaurant: resturantName
             }
 
-            fetch('http://localhost:10000/dispatch-item', {
+            fetch('https://bckridiner.onrender.com/dispatch-item', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -264,7 +264,7 @@
             var items = document.getElementById("openrides");
 
             try {
-                const response = await fetch(`http://localhost:10000/dispatch-rides/${name}`);
+                const response = await fetch(`https://bckridiner.onrender.com/dispatch-rides/${name}`);
                 const data = await response.json();
 
                 const dispatchitems = data;
