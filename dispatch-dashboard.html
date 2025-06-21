@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispatch Rider Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#FF6B00',
+                            dark: '#E65100',
+                            light: '#FFA000',
+                        },
+                        secondary: {
+                            DEFAULT: '#4CAF50',
+                            light: '#81C784',
+                            dark: '#388E3C',
+                        },
+                        background: '#F5F7FA',
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body class="bg-background font-sans">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="bg-primary-dark text-white w-64 flex flex-col">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold">Dispatch Dashboard</h1>
+            </div>
+            <nav class="flex-1">
+                <a href="#" class="block py-3 px-6 hover:bg-primary transition duration-200">Dashboard</a>
+                <a href="#" class="block py-3 px-6 hover:bg-primary transition duration-200">Available Rides</a>
+                <a href="#" class="block py-3 px-6 hover:bg-primary transition duration-200">My Rides</a>
+                <a href="#" class="block py-3 px-6 hover:bg-primary transition duration-200">Profile</a>
+            </nav>
+            <div class="p-6">
+                <p id="emaildis" class="text-sm"></p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <header class="bg-white shadow-md p-6">
+                <h2 class="text-2xl font-semibold text-primary-dark">Available Rides</h2>
+            </header>
+
+            <div class="p-6">
+                <!-- Stats Section -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Total Rides</h3>
+                        <p class="text-3xl font-bold text-primary" id="totalRides">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Completed Rides</h3>
+                        <p class="text-3xl font-bold text-secondary" id="completedRides">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Earnings</h3>
+                        <p class="text-3xl font-bold text-primary-light" id="earnings">$0</p>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Weekly Performance</h3>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+
+                <!-- Rides List -->
+                <div id="availableRidesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Ride cards will be dynamically added here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const emailDisplay = document.getElementById('emaildis');
+        const mail = localStorage.getItem("rider-email");
+        emailDisplay.textContent = `Logged in as: ${mail || 'Rider'}`;
+
+        function fetchAvailableRides() {
+            // Simulating API call with mock data
+            const mockRides = [
+                {
+                    itemNamee: "Groceries",
+                    currentRestaurant: "SuperMart",
+                    currentLocation: "123 Effurun Market Rd",
+                    destination: "456 Ughelli Rd"
+                },
+                {
+                    itemNamee: "Pizza",
+                    currentRestaurant: "Pizza Palace",
+                    currentLocation: "789 Airport Rd",
+                    destination: "101 Warri-Sapele Rd"
+                },
+                {
+                    itemNamee: "Electronics",
+                    currentRestaurant: "Tech Store",
+                    currentLocation: "202 Okumagba Ave",
+                    destination: "303 Ekpan Rd"
+                },
+                {
+                    itemNamee: "Books",
+                    currentRestaurant: "Bookworm Shop",
+                    currentLocation: "404 DBS Rd",
+                    destination: "505 Deco Rd"
+                },
+                {
+                    itemNamee: "Clothes",
+                    currentRestaurant: "Fashion Outlet",
+                    currentLocation: "606 NPA Expressway",
+                    destination: "707 Enerhen Junction"
+                }
+            ]
+
+            displayAvailableRides(mockRides);
+            updateStats(mockRides.length);
+            createPerformanceChart();
+        }
+
+        function displayAvailableRides(rides) {
+            const ridesList = document.getElementById('availableRidesList');
+            ridesList.innerHTML = '';
+
+            rides.forEach(ride => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:scale-105';
+
+                const mapId = `map-${ride.itemNamee.replace(/\s+/g, '-')}`;
+
+                card.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-primary-dark">${ride.itemNamee}</h3>
+                            <span class="bg-primary-light text-white text-xs font-bold px-2 py-1 rounded-full">New</span>
+                        </div>
+                        <p class="text-gray-600 mb-2"><span class="font-semibold">Vendor:</span> ${ride.currentRestaurant || 'N/A'}</p>
+                        <p class="text-gray-600 mb-2"><span class="font-semibold">From:</span> ${ride.currentLocation}</p>
+                        <p class="text-gray-600 mb-4"><span class="font-semibold">To:</span> ${ride.destination}</p>
+                        <div id="${mapId}" class="h-48 mb-4 rounded-md overflow-hidden"></div>
+                        <button class="take-ride-btn w-full bg-secondary hover:bg-secondary-dark text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex justify-center items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Take Ride
+                        </button>
+                    </div>
+                `;
+
+                ridesList.appendChild(card);
+
+                // Initialize map
+                const map = L.map(mapId);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Function to generate random coordinates (for demonstration purposes)
+                function getRandomCoords() {
+                    return [
+                        (Math.random() - 0.5) * 0.1 + 51.5074,  // Centered around London
+                        (Math.random() - 0.5) * 0.1 - 0.1278
+                    ];
+                }
+
+                // Set random coordinates for start and end points
+                const startCoords = getRandomCoords();
+                const endCoords = getRandomCoords();
+
+                // Add markers for start and end points
+                const startMarker = L.marker(startCoords).addTo(map)
+                    .bindPopup(ride.currentLocation)
+                    .openPopup();
+
+                const endMarker = L.marker(endCoords).addTo(map)
+                    .bindPopup(ride.destination);
+
+                // Draw a line between start and end points
+                const routeLine = L.polyline([startCoords, endCoords], { color: 'red' }).addTo(map);
+
+                // Fit the map to show both markers
+                const bounds = L.latLngBounds([startCoords, endCoords]);
+                map.fitBounds(bounds, { padding: [30, 30] });
+
+                // Add click event listener to the button
+                card.querySelector('.take-ride-btn').addEventListener('click', () => takeRide(ride.itemNamee));
+            });
+        }
+
+        function takeRide(rideId) {
+            if (confirm("Are you sure you want to take this ride?")) {
+                // Simulating API call
+                setTimeout(() => {
+                    alert('Ride taken successfully!');
+                    fetchAvailableRides();
+                }, 500);
+            }
+        }
+
+        function updateStats(totalRides) {
+            document.getElementById('totalRides').textContent = totalRides;
+            document.getElementById('completedRides').textContent = Math.floor(Math.random() * totalRides);
+            document.getElementById('earnings').textContent = '$' + (Math.random() * 1000).toFixed(2);
+        }
+
+        function createPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Rides Completed',
+                        data: [12, 19, 3, 5, 2, 3, 10],
+                        borderColor: '#FF6B00',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        fetchAvailableRides();
+    </script>
+</body>
+
+</html>
